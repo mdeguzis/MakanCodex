@@ -1,4 +1,4 @@
-# RecipeForge
+# RecipeCrypt
 Python-based recipe manager
 
 * Export, import, view recipes easily in multiple formats
