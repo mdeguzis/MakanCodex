@@ -6,8 +6,8 @@ import os
 from urllib.parse import urlparse
 import http.client
 
-# from makan_codex import database
 from makan_codex import utils
+from makan_codex.recipe_handler import RecipeHandler
 
 
 def parse_arguments():
@@ -90,22 +90,32 @@ def main():
         logger = utils.setup_logging(args.debug)
         logger.debug("Starting Cookbook tool")
 
+        # Initialize recipe handler
+        handler = RecipeHandler()
+
         if args.command == "view":
             print("Viewing recipe...")
+            # TODO: Implement recipe viewing
         elif args.command == "add-recipe":
             # Interactive prompt for adding recipe
-            print("Starting interactive recipe addition...")
-            # TODO: Implement interactive recipe addition
+            logger.info("Starting interactive recipe addition...")
+            recipe_id = handler.add_recipe_interactive()
+            if recipe_id is None:
+                return 1
         elif args.command == "update-recipe":
             # Interactive prompt for updating recipe
-            print(f"Starting interactive update for recipe: {args.name}")
-            # TODO: Implement interactive recipe update
+            logger.info(f"Starting interactive update for recipe: {args.name}")
+            if not handler.update_recipe_interactive(args.name):
+                return 1
         elif args.command == "delete-recipe":
-            print(f"Deleting recipe: {args.name}")
-            # TODO: Implement recipe deletion
+            logger.info(f"Deleting recipe: {args.name}")
+            if not handler.delete_recipe(args.name):
+                return 1
         elif args.command == "import-recipe":
-            print(f"Importing recipe from: {args.source}")
-            # TODO: Implement recipe import
+            logger.info(f"Importing recipe from: {args.source}")
+            recipe_id = handler.save_recipe_from_url(args.source)
+            if recipe_id is None:
+                return 1
         else:
             logger.error("No command specified")
             return 1

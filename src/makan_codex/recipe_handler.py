@@ -1,6 +1,6 @@
 import sys
 import os
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 import requests
 from pathlib import Path
 import tempfile
@@ -10,13 +10,107 @@ from makan_codex import utils
 from makan_codex.database import RecipeDatabase
 
 
+def get_interactive_input(
+    prompt: str, required: bool = True, default: str = None
+) -> str:
+    """Helper function to get interactive input from user"""
+    while True:
+        if default:
+            value = input(f"{prompt} [{default}]: ").strip()
+            if not value:
+                return default
+        else:
+            value = input(f"{prompt}: ").strip()
+
+        if value or not required:
+            return value
+        print("This field is required. Please enter a value.")
+
+
+def get_list_input(prompt: str, required: bool = True) -> List[str]:
+    """Helper function to get a list of items from user"""
+    print(f"{prompt} (Enter an empty line when done)")
+    items = []
+    while True:
+        item = input(f"{len(items) + 1}> ").strip()
+        if not item:
+            if not items and required:
+                print("At least one item is required. Please enter a value.")
+                continue
+            break
+        items.append(item)
+    return items
+
+
+def get_recipe_data_interactively(
+    existing_data: Dict[str, Any] = None
+) -> Dict[str, Any]:
+    """
+    Common function to get recipe data interactively.
+    If existing_data is provided, use it as default values.
+    """
+    recipe_data = {}
+
+    # Get basic information
+    recipe_data["name"] = get_interactive_input(
+        "Recipe name", default=existing_data.get("name") if existing_data else None
+    )
+
+    recipe_data["prep_time"] = get_interactive_input(
+        "Preparation time (e.g., '30 minutes')",
+        required=False,
+        default=existing_data.get("prep_time") if existing_data else None,
+    )
+
+    recipe_data["cook_time"] = get_interactive_input(
+        "Cooking time (e.g., '1 hour')",
+        required=False,
+        default=existing_data.get("cook_time") if existing_data else None,
+    )
+
+    # Get ingredients
+    print("\nEnter ingredients:")
+    recipe_data["ingredients"] = get_list_input(
+        "Enter each ingredient on a new line", required=True
+    )
+
+    # Get instructions
+    print("\nEnter instructions:")
+    recipe_data["instructions"] = get_list_input(
+        "Enter each step on a new line", required=True
+    )
+
+    # Get notes
+    recipe_data["notes"] = get_interactive_input(
+        "Additional notes",
+        required=False,
+        default=existing_data.get("notes") if existing_data else None,
+    )
+
+    # Get image path
+    image_path = get_interactive_input(
+        "Image file path (optional)", required=False, default=None
+    )
+
+    if image_path:
+        image_path = Path(image_path).expanduser()
+        if image_path.exists():
+            with open(image_path, "rb") as f:
+                recipe_data["image"] = f.read()
+        else:
+            print(f"Warning: Image file not found: {image_path}")
+            recipe_data["image"] = None
+    else:
+        recipe_data["image"] = None
+
+    return recipe_data
+
+
 class RecipeHandler:
     def __init__(self):
         self.db = RecipeDatabase()
         self.supported_sites = {
-            "allrecipes.com": scrapers.AllRecipes,
-            "thepioneerwoman.com": scrapers.PioneerWoman,
-            "food.com": scrapers.FoodCom,
+            "allrecipes.com": scrapers.AllRecipesScraper,
         }
 
     def save_recipe_from_url(self, url: str) -> Optional[int]:
@@ -74,73 +168,64 @@ class RecipeHandler:
             print(f"Error saving recipe: {str(e)}")
             return None
 
-    def add_recipe_manual(
-        self,
-        name: str,
-        prep_time: str,
-        cook_time: str,
-        ingredients: list,
-        steps: list,
-        notes: Optional[str] = None,
-        image_path: Optional[str] = None,
-    ) -> Optional[int]:
+    def add_recipe_interactive(self) -> Optional[int]:
         """
-        Manually add a recipe to the database.
+        Interactively add a new recipe.
         Returns the recipe ID if successful, None if failed.
         """
         try:
-            # Handle image if provided
-            image_data = None
-            if image_path:
-                image_path = Path(image_path).expanduser()
-                if image_path.exists():
-                    with open(image_path, "rb") as f:
-                        image_data = f.read()
-                else:
-                    print(f"Warning: Image file not found: {image_path}")
+            print("Adding new recipe:")
+            recipe_data = get_recipe_data_interactively()
 
             # Add recipe to database
             recipe_id = self.db.add_recipe(
-                name=name,
-                prep_time=prep_time,
-                cook_time=cook_time,
-                ingredients=ingredients,
-                steps=steps,
-                notes=notes,
-                image=image_data,
+                name=recipe_data["name"],
+                prep_time=recipe_data["prep_time"],
+                cook_time=recipe_data["cook_time"],
+                ingredients=recipe_data["ingredients"],
+                steps=recipe_data["instructions"],
+                notes=recipe_data["notes"],
+                image=recipe_data["image"],
             )
 
-            print(f"Recipe '{name}' added successfully with ID: {recipe_id}")
+            print(
+                f"Recipe '{recipe_data['name']}' added successfully with ID: {recipe_id}"
+            )
             return recipe_id
 
         except Exception as e:
             print(f"Error adding recipe: {str(e)}")
             return None
 
-    def update_recipe(self, recipe_id: int, **updates: Dict[str, Any]) -> bool:
+    def update_recipe_interactive(self, recipe_id: int) -> bool:
         """
-        Update an existing recipe in the database.
+        Interactively update an existing recipe.
         Returns True if successful, False otherwise.
         """
         try:
-            # Handle image update if provided
-            if "image_path" in updates:
-                image_path = Path(updates["image_path"]).expanduser()
-                if image_path.exists():
-                    with open(image_path, "rb") as f:
-                        updates["image"] = f.read()
-                else:
-                    print(f"Warning: Image file not found: {image_path}")
-                del updates["image_path"]
+            # Get existing recipe data
+            existing_recipe = self.db.get_recipe(recipe_id)
+            if not existing_recipe:
+                print(f"Recipe {recipe_id} not found")
+                return False
+
+            print(f"Updating recipe '{existing_recipe['name']}' (ID: {recipe_id}):")
+            recipe_data = get_recipe_data_interactively(existing_recipe)
 
             # Update the recipe
-            success = self.db.update_recipe(recipe_id, **updates)
+            success = self.db.update_recipe(
+                recipe_id,
+                name=recipe_data["name"],
+                prep_time=recipe_data["prep_time"],
+                cook_time=recipe_data["cook_time"],
+                ingredients=recipe_data["ingredients"],
+                steps=recipe_data["instructions"],
+                notes=recipe_data["notes"],
+                image=recipe_data["image"],
+            )
 
             if success:
                 print(f"Recipe {recipe_id} updated successfully")
-            else:
-                print(f"Recipe {recipe_id} not found")
-
             return success
 
         except Exception as e:

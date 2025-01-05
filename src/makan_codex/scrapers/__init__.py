@@ -1,15 +1,5 @@
-from .abstract_scraper import AbstractScraper
-from .all_recipes_com_scraper import AllRecipesComScraper
-from .food_com_scraper import FoodComScraper
-from .food_network_com_scraper import FoodNetworkComScraper
-from .pioneer_woman_scraper import PioneerWomanScraper
-from .simply_recipes_scraper import SimplyRecipesScraper
+# src/makan_codex/scrapers/__init__.py
+from .base import RecipeScraper
+from .all_recipes_com_scaper import AllRecipesScraper
 
-__all__ = [
-    "AbstractScraper",
-    "AllRecipesComScraper",
-    "FoodComScraper",
-    "FoodNetworkComScraper",
-    "PioneerWomanScraper",
-    "SimplyRecipesScraper",
-]
+__all__ = ["RecipeScraper", "AllRecipesScraper"]
