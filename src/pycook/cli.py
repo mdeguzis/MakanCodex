@@ -1,18 +1,18 @@
 #!/usr/bin/env python
 
 import argparse
-import httplib
 import sys
-import getopt
-import urlparse
+import os
+from urllib.parse import urlparse
+import http.client
 
-from pycook import database
+# from pycook import database
 from pycook import utils
 
 
 def parse_arguments():
     """Parse command line arguments"""
-    parser = argparse.ArgumentParser(description="Steam VDF Tool")
+    parser = argparse.ArgumentParser(description="PyCook Recipe Manager")
 
     # Create parent parser for common arguments
     parent_parser = argparse.ArgumentParser(add_help=False)
@@ -38,7 +38,7 @@ def parse_arguments():
     view_parser = subparsers.add_parser(
         "view", help="View contents of a recipe", parents=[parent_parser]
     )
-    view_parser.add_argument("file", type=str, help="Path to VDF file to view")
+    view_parser.add_argument("file", type=str, help="Path to recipe file to view")
 
     # Add
     subparsers.add_parser(
@@ -54,33 +54,32 @@ def parse_arguments():
         parents=[parent_parser],
     )
 
-    args = parser.parse_args()
-    if not args.command:
-        parser.print_help()
-        parser.exit()
-
-    return args
+    return parser.parse_args()
 
 
 def main():
     """
     Main function to handle command line arguments and execute the appropriate actions.
+    Returns:
+        int: Exit code (0 for success, non-zero for failure)
     """
+    try:
+        # Parse arguments
+        args = parse_arguments()
 
-    # Parse arguments
-    args = parse_arguments()
+        # Initialize logger
+        logger = utils.setup_logging(args.debug)
+        logger.debug("Starting Cookbook tool")
 
-    # Initialize logger
-    logger = utils.setup_logging(args.debug)
+        if args.command == "view":
+            print("pass")
 
-    logger.debug("Starting Cookbook tool")
-    # Initialize the matches attribute for the complete_path function
-
-    if args.command == "view":
-        utils.view_vdf(args.file, args.output)
-
-    logger.info("Exiting Cookbook tool")
+        logger.info("Exiting Cookbook tool")
+        return 0
+    except Exception as e:
+        print(f"Error: {str(e)}", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
