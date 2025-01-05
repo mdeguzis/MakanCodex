@@ -12,7 +12,7 @@ import sys
 sys.path.insert(0, os.path.abspath("../.."))
 
 
-project = "recipe-cookbook"
+project = "pycook"
 copyright = "2025, Michael DeGuzis"
 author = "Michael DeGuzis"
 release = "0.1"

@@ -1,13 +1,14 @@
 [tool.poetry]
-name = "recipe-cookbook"
+name = "pycook"
 version = "0.1.8"
 description = "Save, create, import, recipes to multiple formats"
 authors = ["Michael DeGuzis <mdeguzis@gmail.com>"]
 readme = "README.md"
-packages = [{include = "recipe_cookbook", from = "src"}]
+packages = [{include = "pycook", from = "src"}]
 
 [tool.poetry.dependencies]
 python = ">=3.8.1"
+requests = "^2.32.3"
 
 
 [tool.isort]

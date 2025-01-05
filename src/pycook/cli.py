@@ -1,9 +1,13 @@
 #!/usr/bin/env python
 
 import argparse
+import httplib
+import sys
+import getopt
+import urlparse
 
-from recipe_cookbook import database
-from recipe_cookbook import utils
+from pycook import database
+from pycook import utils
 
 
 def parse_arguments():

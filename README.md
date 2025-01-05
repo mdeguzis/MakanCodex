@@ -1,4 +1,4 @@
-# recipe-cookbook
+# pycook
 Markdown based recipe manager
 
 * Export, import, view recipes easily in multiple formats
@@ -6,4 +6,9 @@ Markdown based recipe manager
 * Sync Markdown recipes to target directory in PDF format for viewing on any mobile device.
 
 Credits:
-* Scaper code is a  fork / continuation of https://github.com/cookbrite/Recipe-to-Markdown
+* Scaper code is a fork / continuation of https://github.com/cookbrite/Recipe-to-Markdown
+
+
+## Future
+
+* GUI for basic viewing, adding, deletion.

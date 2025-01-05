@@ -1,4 +1,4 @@
-.PHONY: setup clean test format check build lock
+.PHONY: setup clean test format check build lock requirements
 
 POETRY := poetry
 
@@ -14,6 +14,10 @@ lock:
 setup: lock
 	$(POETRY) install
 	$(POETRY) run pip install -e .
+
+# Generate requirements.txt for other system
+requirements:
+	$(POETRY) export -f requirements.txt --output requirements.txt --without-hashes
 
 # Format code
 format:
