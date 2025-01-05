@@ -2,15 +2,22 @@ import unittest
 from unittest.mock import patch
 import io
 import sys
+import argparse
 from makan_codex.cli import parse_arguments
 
 
 class TestCLI(unittest.TestCase):
+    def setUp(self):
+        # Save original sys.argv
+        self.original_argv = sys.argv
+
+    def tearDown(self):
+        # Restore original sys.argv
+        sys.argv = self.original_argv
+
     @patch("sys.stdout", new_callable=io.StringIO)
     def test_help_flag(self, mock_stdout):
         """Test that -h and --help flags print help message"""
-
-        # Test cases with their expected substrings
         test_cases = [
             (["-h"], "usage:"),
             (["--help"], "usage:"),
@@ -18,51 +25,51 @@ class TestCLI(unittest.TestCase):
 
         for args, expected_text in test_cases:
             with self.subTest(args=args):
-                # Patch sys.argv
-                with patch("sys.argv", ["makan_codex"] + args):
-                    # Should raise SystemExit because help exits
-                    with self.assertRaises(SystemExit) as cm:
-                        parse_arguments()
-
-                    # Check exit was clean (exit code 0)
-                    self.assertEqual(cm.exception.code, 0)
-
-                    # Get captured output
-                    output = mock_stdout.getvalue()
-
-                    # Verify help text was printed
-                    self.assertIn(expected_text, output)
-                    self.assertIn("PyCook Recipe Manager", output)
-
-                # Clear the captured output for next test
+                sys.argv = ["makan_codex"] + args
+                with self.assertRaises(SystemExit) as cm:
+                    parse_arguments()
+                self.assertEqual(cm.exception.code, 0)
+                output = mock_stdout.getvalue()
+                self.assertIn(expected_text, output)
+                self.assertIn("PyCook Recipe Manager", output)
                 mock_stdout.truncate(0)
                 mock_stdout.seek(0)
 
-    @patch("sys.stdout", new_callable=io.StringIO)
-    def test_subcommand_help(self, mock_stdout):
-        """Test that subcommand help messages work"""
+    def test_subcommands_exist(self):
+        """Test that all subcommands exist and accept -h"""
+        expected_commands = {
+            "view",
+            "add-recipe",
+            "delete-recipe",
+            "update-recipe",
+            "import-recipe",
+        }
 
+        for cmd in expected_commands:
+            with self.subTest(cmd=cmd):
+                sys.argv = ["makan_codex", cmd, "-h"]
+                with patch("sys.stdout", new_callable=io.StringIO) as mock_stdout:
+                    with self.assertRaises(SystemExit) as cm:
+                        parse_arguments()
+                    self.assertEqual(cm.exception.code, 0)
+                    output = mock_stdout.getvalue()
+                    self.assertIn("usage:", output.lower())
+
+    def test_basic_command_parsing(self):
+        """Test that commands are properly parsed"""
         test_cases = [
-            (["view", "-h"], "path to recipe file to view"),
-            (
-                ["add-recipe", "-h"],
-                "output type format",
-            ),  # Changed to match actual output
-            (["remove-recipe", "-h"], "output type format"),
+            (["view", "recipe.txt"], "view"),
+            (["add-recipe"], "add-recipe"),
+            (["delete-recipe", "recipe1"], "delete-recipe"),
+            (["update-recipe", "recipe1"], "update-recipe"),
+            (["import-recipe", "recipe.json"], "import-recipe"),
         ]
 
-        for args, expected_text in test_cases:
+        for args, expected_command in test_cases:
             with self.subTest(args=args):
-                with patch("sys.argv", ["makan_codex"] + args):
-                    with self.assertRaises(SystemExit) as cm:
-                        parse_arguments()
-
-                    self.assertEqual(cm.exception.code, 0)
-                    output = mock_stdout.getvalue()
-                    self.assertIn(expected_text.lower(), output.lower())
-
-                mock_stdout.truncate(0)
-                mock_stdout.seek(0)
+                sys.argv = ["makan_codex"] + args
+                args = parse_arguments()
+                self.assertEqual(args.command, expected_command)
 
 
 if __name__ == "__main__":

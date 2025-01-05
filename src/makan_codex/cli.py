@@ -40,18 +40,37 @@ def parse_arguments():
     )
     view_parser.add_argument("file", type=str, help="Path to recipe file to view")
 
-    # Add
-    subparsers.add_parser(
+    # Add recipe (interactive)
+    add_parser = subparsers.add_parser(
         "add-recipe",
-        help="Add a new recipe",
+        help="Add a new recipe interactively",
         parents=[parent_parser],
     )
 
-    # Deletion  / Manipulation
-    subparsers.add_parser(
-        "remove-recipe",
-        help="Remove a recipe",
+    # Update recipe (interactive)
+    update_parser = subparsers.add_parser(
+        "update-recipe",
+        help="Update an existing recipe interactively",
         parents=[parent_parser],
+    )
+    update_parser.add_argument("name", type=str, help="Name of recipe to update")
+
+    # Delete recipe
+    delete_parser = subparsers.add_parser(
+        "delete-recipe",
+        help="Delete an existing recipe",
+        parents=[parent_parser],
+    )
+    delete_parser.add_argument("name", type=str, help="Name of recipe to delete")
+
+    # Import recipe
+    import_parser = subparsers.add_parser(
+        "import-recipe",
+        help="Import a recipe from a file or URL",
+        parents=[parent_parser],
+    )
+    import_parser.add_argument(
+        "source", type=str, help="File path or URL to import recipe from"
     )
 
     return parser.parse_args()
@@ -72,7 +91,24 @@ def main():
         logger.debug("Starting Cookbook tool")
 
         if args.command == "view":
-            print("pass")
+            print("Viewing recipe...")
+        elif args.command == "add-recipe":
+            # Interactive prompt for adding recipe
+            print("Starting interactive recipe addition...")
+            # TODO: Implement interactive recipe addition
+        elif args.command == "update-recipe":
+            # Interactive prompt for updating recipe
+            print(f"Starting interactive update for recipe: {args.name}")
+            # TODO: Implement interactive recipe update
+        elif args.command == "delete-recipe":
+            print(f"Deleting recipe: {args.name}")
+            # TODO: Implement recipe deletion
+        elif args.command == "import-recipe":
+            print(f"Importing recipe from: {args.source}")
+            # TODO: Implement recipe import
+        else:
+            logger.error("No command specified")
+            return 1
 
         logger.info("Exiting Cookbook tool")
         return 0
