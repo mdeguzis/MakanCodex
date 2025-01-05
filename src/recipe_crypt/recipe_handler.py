@@ -1,6 +1,6 @@
 import sys
-from pycook import scrapers
-from pycook import utils
+from recipe_crypt import scrapers
+from recipe_crypt import utils
 
 
 def save_recipe(url):

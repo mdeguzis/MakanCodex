@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch
 import io
 import sys
-from pycook.cli import parse_arguments
+from recipe_crypt.cli import parse_arguments
 
 
 class TestCLI(unittest.TestCase):
@@ -19,7 +19,7 @@ class TestCLI(unittest.TestCase):
         for args, expected_text in test_cases:
             with self.subTest(args=args):
                 # Patch sys.argv
-                with patch("sys.argv", ["pycook"] + args):
+                with patch("sys.argv", ["recipe_crypt"] + args):
                     # Should raise SystemExit because help exits
                     with self.assertRaises(SystemExit) as cm:
                         parse_arguments()
@@ -53,7 +53,7 @@ class TestCLI(unittest.TestCase):
 
         for args, expected_text in test_cases:
             with self.subTest(args=args):
-                with patch("sys.argv", ["pycook"] + args):
+                with patch("sys.argv", ["recipe_crypt"] + args):
                     with self.assertRaises(SystemExit) as cm:
                         parse_arguments()
 

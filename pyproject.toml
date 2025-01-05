@@ -3,13 +3,13 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-name = "pycook"
+name = "recipe_crypt"
 version = "0.1.8"
 description = ""
 authors = ["Michael DeGuzis <mdeguzis@gmail.com>"]
 readme = "README.md"
 packages = [
-    { include = "pycook", from = "src", format = ["sdist", "wheel"] }
+    { include = "recipe_crypt", from = "src", format = ["sdist", "wheel"] }
 ]
 
 
@@ -25,7 +25,7 @@ pytest-cov = "^4.1.0"
 mypy = "^1.8.0"
 
 [tool.poetry.scripts]
-pycook = "pycook.cli:main"
+recipe_crypt = "recipe_crypt.cli:main"
 
 [tool.mypy]
 python_version = "3.8"
@@ -51,11 +51,11 @@ ensure_newline_before_comments = true
 line_length = 88
 
 [tool.pytest.ini_options]
-addopts = "--cov=src/pycook --cov-report=term-missing"
+addopts = "--cov=src/recipe_crypt --cov-report=term-missing"
 testpaths = ["tests"]
 
 [tool.coverage.run]
-source = ["src/pycook"]
+source = ["src/recipe_crypt"]
 branch = true
 
 [tool.coverage.report]

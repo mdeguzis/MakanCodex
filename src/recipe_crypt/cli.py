@@ -6,8 +6,8 @@ import os
 from urllib.parse import urlparse
 import http.client
 
-# from pycook import database
-from pycook import utils
+# from recipe_crypt import database
+from recipe_crypt import utils
 
 
 def parse_arguments():

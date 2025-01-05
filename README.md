@@ -1,5 +1,5 @@
-# pycook
-Markdown based recipe manager
+# RecipeForge
+Python-based recipe manager
 
 * Export, import, view recipes easily in multiple formats
 * Recipes stored and accessed to open source database

@@ -36,7 +36,7 @@ check: verify-imports lint static-check
 # Run linting and style checks
 lint:
 	@echo "Running linting and style checks..."
-#$(FLAKE8) src/pycook tests
+#$(FLAKE8) src/recipe_crypt tests
 #$(BLACK) --check .
 #$(ISORT) --check .
 
@@ -44,19 +44,19 @@ lint:
 # Static type checking
 static-check:
 	@echo "Running static type checking..."
-#$(MYPY) src/pycook --ignore-missing-imports
+#$(MYPY) src/recipe_crypt --ignore-missing-imports
 
 # Run tests with different options
 test: test-standard test-coverage
 
 test-standard:
-	$(PYTEST) --cov=src/pycook tests/
+	$(PYTEST) --cov=src/recipe_crypt tests/
 
 test-verbose:
 	$(PYTEST) -v --capture=no
 
 test-coverage:
-	$(PYTEST) --cov=src/pycook
+	$(PYTEST) --cov=src/recipe_crypt
 
 # Build package
 build: check test
