@@ -1,6 +1,6 @@
 import sys
-from recipe_crypt import scrapers
-from recipe_crypt import utils
+from makan_codex import scrapers
+from makan_codex import utils
 
 
 def save_recipe(url):

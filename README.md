@@ -1,4 +1,4 @@
-# RecipeCrypt
+# The Makan Codex
 Python-based recipe manager
 
 * Export, import, view recipes easily in multiple formats

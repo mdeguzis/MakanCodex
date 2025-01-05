@@ -6,8 +6,8 @@ import os
 from urllib.parse import urlparse
 import http.client
 
-# from recipe_crypt import database
-from recipe_crypt import utils
+# from makan_codex import database
+from makan_codex import utils
 
 
 def parse_arguments():
