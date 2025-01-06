@@ -38,7 +38,7 @@ class TestCLI(unittest.TestCase):
     def test_subcommands_exist(self):
         """Test that all subcommands exist and accept -h"""
         expected_commands = {
-            "view",
+            "search",
             "add-recipe",
             "delete-recipe",
             "update-recipe",
@@ -58,7 +58,8 @@ class TestCLI(unittest.TestCase):
     def test_basic_command_parsing(self):
         """Test that commands are properly parsed"""
         test_cases = [
-            (["view", "recipe.txt"], "view"),
+            (["search"], "search"),  # Test search without query
+            (["search", "chicken"], "search"),  # Test search with query
             (["add-recipe"], "add-recipe"),
             (["delete-recipe", "recipe1"], "delete-recipe"),
             (["update-recipe", "recipe1"], "update-recipe"),

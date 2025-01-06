@@ -34,11 +34,20 @@ def parse_arguments():
     # Create subparsers with parent
     subparsers = parser.add_subparsers(dest="command")
 
-    # View
-    view_parser = subparsers.add_parser(
-        "view", help="View contents of a recipe", parents=[parent_parser]
+    # Search
+    # Add search parser - making query optional
+    search_parser = subparsers.add_parser(
+        "search",
+        help="Search for recipes (shows all recipes if no query provided)",
+        parents=[parent_parser],
     )
-    view_parser.add_argument("file", type=str, help="Path to recipe file to view")
+    search_parser.add_argument(
+        "query",
+        nargs="?",  # Makes the positional argument optional
+        type=str,
+        help="Search query string",
+        default=None,  # None when no query provided
+    )
 
     # Add recipe (interactive)
     add_parser = subparsers.add_parser(
@@ -92,10 +101,10 @@ def main():
 
         # Initialize recipe handler
         handler = RecipeHandler()
-
-        if args.command == "view":
-            print("Viewing recipe...")
-            # TODO: Implement recipe viewing
+        if args.command == "search":
+            logger.info(f"Searching recipes with query: {args.query}")
+            if not handler.search_recipes(args.query):
+                return 1
         elif args.command == "add-recipe":
             # Interactive prompt for adding recipe
             logger.info("Starting interactive recipe addition...")

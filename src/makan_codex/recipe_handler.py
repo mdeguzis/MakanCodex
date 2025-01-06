@@ -5,9 +5,10 @@ import requests
 from pathlib import Path
 import tempfile
 
+from makan_codex import database
 from makan_codex import scrapers
 from makan_codex import utils
-from makan_codex.database import RecipeDatabase
+import json
 
 
 def get_interactive_input(
@@ -49,6 +50,9 @@ def get_recipe_data_interactively(
     Common function to get recipe data interactively.
     If existing_data is provided, use it as default values.
     """
+    if existing_data is None:
+        existing_data = {}
+
     recipe_data = {}
 
     # Get basic information
@@ -92,81 +96,128 @@ def get_recipe_data_interactively(
         "Image file path (optional)", required=False, default=None
     )
 
+    # Handle image file
+    recipe_data["image"] = None
     if image_path:
         image_path = Path(image_path).expanduser()
         if image_path.exists():
-            with open(image_path, "rb") as f:
-                recipe_data["image"] = f.read()
+            try:
+                with open(image_path, "rb") as f:
+                    recipe_data["image"] = f.read()
+            except Exception as e:
+                print(f"Warning: Could not read image file: {e}")
         else:
             print(f"Warning: Image file not found: {image_path}")
-            recipe_data["image"] = None
-    else:
-        recipe_data["image"] = None
 
     return recipe_data
 
 
 class RecipeHandler:
     def __init__(self):
-        self.db = RecipeDatabase()
+        db_path = Path.home() / "maken-codex" / "database.json"
+        self.db = database.RecipeDatabase(db_path)
         self.supported_sites = {
             "allrecipes.com": scrapers.AllRecipesScraper,
         }
+
+    def search_recipes(self, query: str = None) -> List[Dict[str, Any]]:
+        """
+        Search recipes by name. If no query is provided, returns all recipes.
+
+        Args:
+            query: Optional search string to filter recipe names
+
+        Returns:
+            List of recipe dictionaries containing id and name
+        """
+        try:
+            recipes = self.db.search_recipes(query)
+            if not recipes:
+                print("No recipes found")
+            return recipes
+        except Exception as e:
+            print(f"Error searching recipes: {str(e)}")
+            return []
 
     def save_recipe_from_url(self, url: str) -> Optional[int]:
         """
         Scrape and save a recipe from a supported website URL.
         Returns the recipe ID if successful, None if failed.
         """
-        if not utils.check_url(url):
-            print(f"Error: {url} does not exist or is not accessible")
-            return None
-
-        # Determine the appropriate scraper
-        scraper_class = None
-        for site, scraper in self.supported_sites.items():
-            if site in url:
-                scraper_class = scraper
-                break
-
-        if not scraper_class:
-            print(f"Error: Unrecognized site: {url}")
-            return None
-
         try:
-            # Initialize scraper and get recipe data
-            scraper = scraper_class(url)
-            recipe_data = scraper.scrape()
+            # Parse domain from URL
+            from urllib.parse import urlparse
 
-            # Download and save image if available
-            image_data = None
-            if recipe_data.get("image_url"):
-                try:
-                    response = requests.get(recipe_data["image_url"])
-                    if response.status_code == 200:
-                        image_data = response.content
-                except Exception as e:
-                    print(f"Warning: Failed to download recipe image: {e}")
+            domain = urlparse(url).netloc.lower()
+
+            # Check if site is supported
+            if domain not in self.supported_sites:
+                print(f"Unsupported website: {domain}")
+                print(f"Supported sites: {', '.join(self.supported_sites.keys())}")
+                return None
+
+            # Create scraper instance and get recipe data
+            scraper_class = self.supported_sites[domain]
+            scraper = scraper_class()
+            recipe_data = scraper.scrape(url)
+
+            if not recipe_data:
+                print("Failed to scrape recipe data")
+                return None
+
+            # Get current recipes
+            recipes = self.db.get_all_recipes()
+
+            # Generate new recipe ID
+            new_id = max([recipe.get("id", 0) for recipe in recipes], default=0) + 1
+
+            # Create new recipe entry
+            new_recipe = {
+                "id": new_id,
+                "name": recipe_data["name"],
+                "prep_time": recipe_data.get("prep_time", "N/A"),
+                "cook_time": recipe_data.get("cook_time", "N/A"),
+                "ingredients": recipe_data["ingredients"],
+                "instructions": recipe_data["instructions"],
+                "notes": recipe_data.get("notes", ""),
+                "image": recipe_data.get("image"),
+            }
 
             # Add recipe to database
-            recipe_id = self.db.add_recipe(
-                name=recipe_data["name"],
-                prep_time=recipe_data.get("prep_time", "N/A"),
-                cook_time=recipe_data.get("cook_time", "N/A"),
-                ingredients=recipe_data["ingredients"],
-                steps=recipe_data["instructions"],
-                notes=recipe_data.get("notes", ""),
-                image=image_data,
+            self.db.add_recipe(
+                name=new_recipe["name"],
+                prep_time=new_recipe["prep_time"],
+                cook_time=new_recipe["cook_time"],
+                ingredients=new_recipe["ingredients"],
+                steps=new_recipe["instructions"],
+                notes=new_recipe["notes"],
+                image=new_recipe["image"],
             )
 
             print(
-                f"Recipe '{recipe_data['name']}' saved successfully with ID: {recipe_id}"
+                f"Recipe '{recipe_data['name']}' saved successfully with ID: {new_id}"
             )
-            return recipe_id
+            return new_id
 
         except Exception as e:
             print(f"Error saving recipe: {str(e)}")
             return None
+
+    def delete_recipe(self, name: str) -> bool:
+        """
+        Delete a recipe by name.
+        Returns True if successful, False otherwise.
+        """
+        try:
+            if self.db.delete_recipe_by_name(name):
+                print(f"Recipe '{name}' deleted successfully")
+                return True
+            else:
+                print(f"Recipe '{name}' not found")
+                return False
+        except Exception as e:
+            print(f"Error deleting recipe: {e}")
+            return False
 
     def add_recipe_interactive(self) -> Optional[int]:
         """
@@ -197,14 +248,45 @@ class RecipeHandler:
             print(f"Error adding recipe: {str(e)}")
             return None
 
+    def get_recipe(self, recipe_id: int) -> Optional[Dict[str, Any]]:
+        """Get a recipe by ID"""
+        try:
+            response = self.db.read_todos()
+            if response.error != database.SUCCESS:
+                print("Error reading recipes database")
+                return None
+
+            for recipe in response.todo_list:
+                if recipe.get("id") == recipe_id:
+                    return recipe
+
+            print(f"Recipe with ID {recipe_id} not found")
+            return None
+        except Exception as e:
+            print(f"Error getting recipe: {str(e)}")
+            return None
+
     def update_recipe_interactive(self, recipe_id: int) -> bool:
         """
         Interactively update an existing recipe.
         Returns True if successful, False otherwise.
         """
         try:
-            # Get existing recipe data
-            existing_recipe = self.db.get_recipe(recipe_id)
+            # Get current recipes
+            response = self.db.read_todos()
+            if response.error != database.SUCCESS:
+                print("Error reading recipes database")
+                return False
+
+            recipes = response.todo_list
+
+            # Find the recipe to update
+            existing_recipe = None
+            for i, recipe in enumerate(recipes):
+                if recipe.get("id") == recipe_id:
+                    existing_recipe = recipe
+                    break
+
             if not existing_recipe:
                 print(f"Recipe {recipe_id} not found")
                 return False
@@ -212,97 +294,30 @@ class RecipeHandler:
             print(f"Updating recipe '{existing_recipe['name']}' (ID: {recipe_id}):")
             recipe_data = get_recipe_data_interactively(existing_recipe)
 
-            # Update the recipe
-            success = self.db.update_recipe(
-                recipe_id,
-                name=recipe_data["name"],
-                prep_time=recipe_data["prep_time"],
-                cook_time=recipe_data["cook_time"],
-                ingredients=recipe_data["ingredients"],
-                steps=recipe_data["instructions"],
-                notes=recipe_data["notes"],
-                image=recipe_data["image"],
-            )
+            # Update recipe data
+            updated_recipe = {
+                "id": recipe_id,
+                "name": recipe_data["name"],
+                "prep_time": recipe_data["prep_time"],
+                "cook_time": recipe_data["cook_time"],
+                "ingredients": recipe_data["ingredients"],
+                "instructions": recipe_data["instructions"],
+                "notes": recipe_data["notes"],
+                "image": recipe_data["image"],
+            }
 
-            if success:
-                print(f"Recipe {recipe_id} updated successfully")
-            return success
+            # Replace old recipe with updated one
+            recipes[i] = updated_recipe
+
+            # Save updated recipes
+            response = self.db.write_todos(recipes)
+            if response.error != database.SUCCESS:
+                print("Error saving updated recipe")
+                return False
+
+            print(f"Recipe '{recipe_data['name']}' updated successfully")
+            return True
 
         except Exception as e:
             print(f"Error updating recipe: {str(e)}")
             return False
-
-    def delete_recipe(self, recipe_id: int) -> bool:
-        """
-        Delete a recipe from the database.
-        Returns True if successful, False otherwise.
-        """
-        try:
-            success = self.db.delete_recipe(recipe_id)
-
-            if success:
-                print(f"Recipe {recipe_id} deleted successfully")
-            else:
-                print(f"Recipe {recipe_id} not found")
-
-            return success
-
-        except Exception as e:
-            print(f"Error deleting recipe: {str(e)}")
-            return False
-
-    def get_recipe(self, recipe_id: int) -> Optional[Dict[str, Any]]:
-        """
-        Retrieve a recipe from the database.
-        Returns the recipe data if found, None otherwise.
-        """
-        try:
-            recipe = self.db.get_recipe(recipe_id)
-            if not recipe:
-                print(f"Recipe {recipe_id} not found")
-            return recipe
-
-        except Exception as e:
-            print(f"Error retrieving recipe: {str(e)}")
-            return None
-
-    def export_recipe_image(
-        self, recipe_id: int, output_path: Optional[str] = None
-    ) -> bool:
-        """
-        Export a recipe's image to a file.
-        If no output_path is provided, saves to a temporary file and returns the path.
-        """
-        try:
-            recipe = self.db.get_recipe(recipe_id)
-            if not recipe or not recipe["image"]:
-                print(f"No image found for recipe {recipe_id}")
-                return False
-
-            if output_path:
-                save_path = Path(output_path).expanduser()
-            else:
-                # Create temporary file with .jpg extension
-                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".jpg")
-                save_path = Path(temp_file.name)
-                temp_file.close()
-
-            with open(save_path, "wb") as f:
-                f.write(recipe["image"])
-
-            print(f"Image saved to: {save_path}")
-            return True
-
-        except Exception as e:
-            print(f"Error exporting recipe image: {str(e)}")
-            return False
-
-
-def save_recipe(url: str) -> int:
-    """
-    Legacy function for backward compatibility.
-    Returns exit code (0 for success, non-zero for failure).
-    """
-    handler = RecipeHandler()
-    result = handler.save_recipe_from_url(url)
-    return 0 if result is not None else 2
