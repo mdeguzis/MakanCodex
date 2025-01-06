@@ -1,8 +1,14 @@
 import pytest
 from pathlib import Path
 import json
+import hashlib
 import tempfile
+import logging
+import shutil
 from makan_codex.database import RecipeDatabase
+from typing import Optional, Dict, Any, List, Union
+
+logger = logging.getLogger("cli")
 
 
 def test_add_and_delete_recipe(temp_db):
@@ -152,3 +158,136 @@ def temp_db():
 
     # Cleanup after tests
     db_path.unlink(missing_ok=True)
+
+
+def test_add_recipe_with_image(temp_db):
+    """Test adding a recipe with an image"""
+    db = RecipeDatabase(temp_db)
+
+    # Create a temporary test image
+    with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as f:
+        f.write(b"fake image content")
+        test_image_path = Path(f.name)
+
+    try:
+        # Add recipe with image
+        recipe_id = db.add_recipe(
+            name="test with image",
+            prep_time="30 minutes",
+            cook_time="1 hour",
+            ingredients=["ingredient1"],
+            steps=["step1"],
+            notes="test notes",
+            image=test_image_path,
+        )
+
+        # Verify recipe was added
+        with open(temp_db, "r") as f:
+            data = json.load(f)
+
+        assert len(data["recipes"]) == 1
+        recipe = data["recipes"][0]
+
+        # Verify recipe data
+        assert recipe["id"] == recipe_id
+        assert recipe["name"] == "test with image"
+        assert recipe["image"] is not None, "Image filename should be stored in recipe"
+
+        # Verify image was stored
+        image_path = db.images_dir / recipe["image"]
+        assert image_path.exists(), f"Image file should exist at {image_path}"
+
+        # Verify image content
+        with open(image_path, "rb") as f:
+            stored_content = f.read()
+        assert stored_content == b"fake image content", "Image content should match"
+
+        # Delete recipe
+        assert db.delete_recipe(recipe_id)
+
+        # Verify image was deleted
+        assert not image_path.exists(), f"Image file should be deleted at {image_path}"
+
+    finally:
+        # Cleanup
+        test_image_path.unlink(missing_ok=True)
+        # Also cleanup the images directory
+        if db.images_dir.exists():
+            shutil.rmtree(db.images_dir)
+
+
+def test_add_recipe_with_image(temp_db):
+    """Test adding a recipe with an image"""
+    db = RecipeDatabase(temp_db)
+
+    # Create a temporary test image
+    with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as f:
+        f.write(b"fake image content")
+        test_image_path = Path(f.name)
+
+    try:
+        logger.debug(f"Test image created at: {test_image_path}")
+        assert test_image_path.exists(), "Test image should exist"
+
+        # Add recipe with image
+        recipe_id = db.add_recipe(
+            name="test with image",
+            prep_time="30 minutes",
+            cook_time="1 hour",
+            ingredients=["ingredient1"],
+            steps=["step1"],
+            notes="test notes",
+            image=test_image_path,
+        )
+
+        # Verify recipe was added
+        with open(temp_db, "r") as f:
+            data = json.load(f)
+            logger.debug(f"Database content: {json.dumps(data, indent=2)}")
+
+        assert len(data["recipes"]) == 1, "Should have exactly one recipe"
+        recipe = data["recipes"][0]
+
+        # Verify recipe data
+        assert recipe["id"] == recipe_id, "Recipe ID should match"
+        assert recipe["name"] == "test with image", "Recipe name should match"
+        assert recipe["image"] is not None, "Image filename should be stored in recipe"
+
+        # Verify image was stored
+        image_path = db.images_dir / recipe["image"]
+        logger.debug(f"Checking for image at: {image_path}")
+        assert image_path.exists(), f"Image file should exist at {image_path}"
+
+        # Verify image content
+        with open(image_path, "rb") as f:
+            stored_content = f.read()
+        assert stored_content == b"fake image content", "Image content should match"
+
+        # Delete recipe
+        assert db.delete_recipe(recipe_id)
+
+        # Verify image was deleted
+        assert not image_path.exists(), f"Image file should be deleted at {image_path}"
+
+    finally:
+        # Cleanup
+        test_image_path.unlink(missing_ok=True)
+        if db.images_dir.exists():
+            shutil.rmtree(db.images_dir)
+
+
+@pytest.fixture
+def temp_db():
+    """Create a temporary database file for testing"""
+    temp_dir = tempfile.mkdtemp()
+    db_path = Path(temp_dir) / "test_database.json"
+
+    # Initialize with empty database structure
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(db_path, "w") as f:
+        json.dump({"recipes": [], "next_id": 1}, f)
+
+    yield db_path
+
+    # Cleanup
+    shutil.rmtree(temp_dir, ignore_errors=True)
