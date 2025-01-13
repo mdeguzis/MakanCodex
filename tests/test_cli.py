@@ -1,8 +1,8 @@
-import unittest
-from unittest.mock import patch
 import io
 import sys
-import argparse
+import unittest
+from unittest.mock import patch
+
 from makan_codex.cli import parse_arguments
 
 

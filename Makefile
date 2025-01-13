@@ -36,15 +36,15 @@ check: verify-imports lint static-check
 # Run linting and style checks
 lint:
 	@echo "Running linting and style checks..."
-#$(FLAKE8) src/makan_codex tests
-#$(BLACK) --check .
-#$(ISORT) --check .
+	$(FLAKE8) src/makan_codex tests
+	$(BLACK) --check .
+	$(ISORT) --check .
 
 
 # Static type checking
 static-check:
 	@echo "Running static type checking..."
-#$(MYPY) src/makan_codex --ignore-missing-imports
+	$(MYPY) src/makan_codex --ignore-missing-imports
 
 # Run tests with different options
 test: test-standard test-coverage

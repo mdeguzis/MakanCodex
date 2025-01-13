@@ -2,15 +2,12 @@
 
 import argparse
 import sys
-import os
-from urllib.parse import urlparse
-import http.client
 
 from makan_codex import utils
 from makan_codex.recipe_handler import RecipeHandler
 
 
-def parse_arguments():
+def parse_arguments() -> argparse.Namespace:
     """Parse command line arguments"""
     parser = argparse.ArgumentParser(description="PyCook Recipe Manager")
 
@@ -50,7 +47,7 @@ def parse_arguments():
     )
 
     # Add recipe (interactive)
-    add_parser = subparsers.add_parser(
+    subparsers.add_parser(
         "add-recipe",
         help="Add a new recipe interactively",
         parents=[parent_parser],
@@ -85,7 +82,7 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def main():
+def main() -> int:
     """
     Main function to handle command line arguments and execute the appropriate actions.
     Returns:

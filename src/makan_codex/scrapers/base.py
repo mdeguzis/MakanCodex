@@ -1,12 +1,12 @@
-# src/makan_codex/scrapers/base.py
 #!/usr/bin/env python
 # encoding: utf-8
 
-from typing import Optional, List, Dict, Any
-import urllib3
+from typing import Any, Dict, List, Optional
+
 import certifi
-from bs4 import BeautifulSoup
 import isodate
+import urllib3
+from bs4 import BeautifulSoup
 
 # Create a urllib3 PoolManager instance with SSL verification
 http = urllib3.PoolManager(cert_reqs="CERT_REQUIRED", ca_certs=certifi.where())
@@ -72,6 +72,16 @@ class RecipeScraper:
     def findAll(self, name: str, attrs: dict) -> List[BeautifulSoup]:
         """Wrapper for BeautifulSoup's findAll method"""
         return self.soup.find_all(name, attrs)
+
+    def _format_time(self, time_str: Optional[str]) -> str:
+        """Format time string"""
+        if not time_str:
+            return "N/A"
+        return time_str
+
+    def _clean_list(self, items: List[Any]) -> List[str]:
+        """Clean list items"""
+        return [str(item).strip() for item in items if item]
 
     def scrape(self) -> Dict[str, Any]:
         """

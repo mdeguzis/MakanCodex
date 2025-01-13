@@ -1,14 +1,11 @@
-import sys
-import os
-from typing import Optional, Dict, Any, List
-import requests
+import logging
 from pathlib import Path
-import tempfile
+from typing import Any, Dict, List, Optional
+from urllib.parse import urlparse
 
-from makan_codex import database
-from makan_codex import scrapers
-from makan_codex import utils
-import json
+from makan_codex import database, scrapers
+
+logger = logging.getLogger("cli")
 
 
 def get_interactive_input(
@@ -113,7 +110,7 @@ def get_recipe_data_interactively(
 
 
 class RecipeHandler:
-    def __init__(self):
+    def __init__(self) -> None:
         db_path = Path.home() / "maken-codex" / "database.json"
         self.db = database.RecipeDatabase(db_path)
         self.supported_sites = {
@@ -145,9 +142,6 @@ class RecipeHandler:
         Returns the recipe ID if successful, None if failed.
         """
         try:
-            # Parse domain from URL
-            from urllib.parse import urlparse
-
             domain = urlparse(url).netloc.lower()
 
             # Check if site is supported
@@ -251,7 +245,7 @@ class RecipeHandler:
     def get_recipe(self, recipe_id: int) -> Optional[Dict[str, Any]]:
         """Get a recipe by ID"""
         try:
-            response = self.db.read_todos()
+            response = self.db.save_data()
             if response.error != database.SUCCESS:
                 print("Error reading recipes database")
                 return None
@@ -272,18 +266,11 @@ class RecipeHandler:
         Returns True if successful, False otherwise.
         """
         try:
-            # Get current recipes
-            response = self.db.read_todos()
-            if response.error != database.SUCCESS:
-                print("Error reading recipes database")
-                return False
-
-            recipes = response.todo_list
-
-            # Find the recipe to update
+            # Get current recipe
+            data = self.db._load_data()
             existing_recipe = None
-            for i, recipe in enumerate(recipes):
-                if recipe.get("id") == recipe_id:
+            for recipe in data["recipes"]:
+                if recipe["id"] == recipe_id:
                     existing_recipe = recipe
                     break
 
@@ -294,29 +281,13 @@ class RecipeHandler:
             print(f"Updating recipe '{existing_recipe['name']}' (ID: {recipe_id}):")
             recipe_data = get_recipe_data_interactively(existing_recipe)
 
-            # Update recipe data
-            updated_recipe = {
-                "id": recipe_id,
-                "name": recipe_data["name"],
-                "prep_time": recipe_data["prep_time"],
-                "cook_time": recipe_data["cook_time"],
-                "ingredients": recipe_data["ingredients"],
-                "instructions": recipe_data["instructions"],
-                "notes": recipe_data["notes"],
-                "image": recipe_data["image"],
-            }
-
-            # Replace old recipe with updated one
-            recipes[i] = updated_recipe
-
-            # Save updated recipes
-            response = self.db.write_todos(recipes)
-            if response.error != database.SUCCESS:
-                print("Error saving updated recipe")
+            # Update recipe
+            if self.db.update_recipe(recipe_id, recipe_data):
+                print(f"Recipe '{recipe_data['name']}' updated successfully")
+                return True
+            else:
+                print("Failed to update recipe")
                 return False
-
-            print(f"Recipe '{recipe_data['name']}' updated successfully")
-            return True
 
         except Exception as e:
             print(f"Error updating recipe: {str(e)}")

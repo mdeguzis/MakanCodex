@@ -1,5 +1,6 @@
 # src/makan_codex/scrapers/allrecipes.py
-from typing import Optional, List
+from typing import List, Optional
+
 from .base import RecipeScraper
 
 

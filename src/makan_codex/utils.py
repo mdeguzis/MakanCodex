@@ -1,12 +1,13 @@
 import http.client
 import logging
 import os
+from typing import Optional
 from urllib.parse import urlparse
 
 logger = logging.getLogger("cli")
 
 
-def setup_logging(debug=False):
+def setup_logging(debug: bool = False) -> logging.Logger:
     """
     Configure logging for the application.
     Args:
@@ -49,7 +50,7 @@ def setup_logging(debug=False):
     return logger
 
 
-def get_server_status_code(url):
+def get_server_status_code(url: str) -> Optional[int]:
     """
     Download just the header of a URL and
     return the server's status code.
@@ -68,7 +69,7 @@ def get_server_status_code(url):
         return None
 
 
-def check_url(url):
+def check_url(url: str) -> bool:
     """
     Check if a URL exists without downloading the whole file.
     We only check the URL header.
